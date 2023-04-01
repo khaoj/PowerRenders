@@ -7,7 +7,7 @@ Made overnight with the help of Chat GPT.
 
 - Monitors the Maya rendering process and checks for crashes or low CPU usage
 - Restarts the rendering process if necessary, from the last detected frame
-- Supports custom input and output paths, idle time, CPU threshold, start frame, and end frame
+- Go go power renders!
 
 ## Installation
 
