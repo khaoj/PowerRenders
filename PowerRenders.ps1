@@ -25,7 +25,6 @@ a defined threshold for a specified duration, we assume it's a crash and the scr
         - $interval must be long enough to let Maya launch the render and let the average CPU usage raise during the actual renders. 
         - $interval should be: time_to_boot_render * 2. 
      You may need to adjust them depending on your scene and hardware.
-     Go go power renders!
 
 .LIMITATIONS
     - Only tested for the Arnold renderer. 
@@ -69,9 +68,10 @@ param (
 )
 
 $cpuCounter = "\Processor(_Total)\% Processor Time"
+$sep = "=" * 80
 
 # Start the Render CrashFix process
-Write-Verbose "Starting RenderTherapist..." -Verbose
+Write-Verbose "Go go PowerRenders" -Verbose
 while ($true) {
     # Ensure the output directory exists, if not, create it
     if (-not (Test-Path $out_dir)) {
@@ -89,7 +89,7 @@ while ($true) {
     # Set the next frame to render based on the last rendered frame
     if ($lastFrame -ne $null) {
         $nextFrame = $lastFrame.FrameNum + 1
-        Write-Verbose "Continuing render starting at frame $nextFrame" -Verbose
+        Write-Verbose "Detected existing frames. Starting render at frame $nextFrame" -Verbose
         $args = "-r $renderer -s $nextFrame -e $endFrame -rd $out_dir $ma_file"
     } else {
         Write-Verbose "Starting render at frame $start" -Verbose
@@ -97,15 +97,26 @@ while ($true) {
     }
     
     # Launch the Render.exe command with the specified arguments
-    Write-Verbose "Start-Process -FilePath $executable -ArgumentList $args -PassThru" -Verbose
-    $process = Start-Process -FilePath $executable -ArgumentList $args -PassThru
     
+    Write-Verbose $sep -Verbose
+    Write-Verbose "Executable $executable" -Verbose
+    Write-Verbose "Renderer $renderer" -Verbose
+    Write-Verbose "Maya scene file $ma_file" -Verbose
+    Write-Verbose "Start frame $start" -Verbose
+    Write-Verbose "End frame $endFrame" -Verbose
+    Write-Verbose "Output directory $out_dir" -Verbose
+    Write-Verbose "CPU threshold $cpuThreshold" -Verbose
+    Write-Verbose "Interval $interval" -Verbose
+    Write-Verbose "" -Verbose
+    Write-Verbose "Full command:"
+    Write-Verbose "Start-Process -FilePath $executable -ArgumentList $args -PassThru" -Verbose
+    Write-Verbose $sep -Verbose
+    $process = Start-Process -FilePath $executable -ArgumentList $args -PassThru
     # Monitor the process and relaunch it if the CPU usage is below the threshold for the specified interval
     while (!$process.HasExited) {
         $cpuUsage = Get-Counter -Counter $cpuCounter -SampleInterval 1 -MaxSamples ($interval * 2) | Select-Object -ExpandProperty CounterSamples | Select-Object -ExpandProperty CookedValue
         $averageCpuUsage = ($cpuUsage | Measure-Object -Average).Average
-        Write-Verbose "Average CPU usage over the last $interval seconds: $averageCpuUsage%" -Verbose
-        
+        Write-Verbose "Average CPU usage recorded over the last $interval seconds: $averageCpuUsage%" -Verbose
         if ($cpuUsage.Count -ge ($interval * 2)) { # Check if there are enough values to cover the last $interval seconds (2 samples per second)
             $recentCpuUsage = $cpuUsage[-($interval * 2)..-1] # Get the last $interval seconds of CPU usage samples
             if (!($recentCpuUsage -gt $cpuThreshold)) { # Check if CPU usage is never above the threshold
